@@ -4,6 +4,20 @@
 
 const uuid = require('uuidv4');
 
+const asyncLocalStorage = () => ({
+  getItem: async (key) => {
+    return window.localStorage.getItem(key);
+  },
+
+  removeItem: async (key) => {
+    return window.localStorage.removeItem(key);
+  },
+
+  setItem: async (key, value) => {
+    return window.localStorage.setItem(key, value);
+  },
+});
+
 class OpenIdConnect {
   constructor (options) {
     if (!options) {
@@ -60,12 +74,12 @@ class OpenIdConnect {
     return `id_token_${this.clientId}`;
   }
 
-  handleReturnFromRedirect () {
-    const nonce = window.localStorage.getItem('nonce'),
-          previousUrl = window.localStorage.getItem('redirectTo');
+  async handleReturnFromRedirect () {
+    const nonce = await asyncLocalStorage.getItem('nonce'),
+          previousUrl = await asyncLocalStorage.getItem('redirectTo');
 
-    window.localStorage.removeItem('nonce');
-    window.localStorage.removeItem('redirectTo');
+    asyncLocalStorage.removeItem('nonce');
+    asyncLocalStorage.removeItem('redirectTo');
 
     if (!window.location.hash) {
       return;
@@ -96,10 +110,10 @@ class OpenIdConnect {
       return this.onError(new Error('Nonce mismatch.'));
     }
 
-    window.localStorage.setItem(this.getKey(), token);
+    await asyncLocalStorage.setItem(this.getKey(), token);
     window.location.replace(previousUrl);
 
-    this.onAuthenticated(this.getProfile());
+    this.onAuthenticated(await this.getProfile());
   }
 
   login () {
@@ -112,18 +126,18 @@ class OpenIdConnect {
 
       const nonce = uuid();
 
-      window.localStorage.setItem('nonce', nonce);
-      window.localStorage.setItem('redirectTo', window.location.href);
+      asyncLocalStorage.setItem('nonce', nonce);
+      asyncLocalStorage.setItem('redirectTo', window.location.href);
       window.location.href = `${identityProviderUrl}?client_id=${clientId}&redirect_uri=${redirectUrl}&scope=${scope}&response_type=${responseType}&nonce=${nonce}`;
     });
   }
 
   logout () {
-    window.localStorage.removeItem(this.getKey());
+    asyncLocalStorage.removeItem(this.getKey());
   }
 
-  isLoggedIn () {
-    const profile = this.getProfile();
+  async isLoggedIn () {
+    const profile = await this.getProfile();
 
     if (!profile) {
       return false;
@@ -143,8 +157,8 @@ class OpenIdConnect {
     return true;
   }
 
-  getToken () {
-    const token = window.localStorage.getItem(this.getKey());
+  async getToken () {
+    const token = await asyncLocalStorage.getItem(this.getKey());
 
     if (!token) {
       return;
@@ -153,8 +167,8 @@ class OpenIdConnect {
     return token;
   }
 
-  getProfile () {
-    const token = this.getToken();
+  async getProfile () {
+    const token = await this.getToken();
 
     if (!token) {
       return;

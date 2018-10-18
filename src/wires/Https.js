@@ -171,7 +171,7 @@ class Https extends EventEmitter {
     return { stream: subscriptionStream, cancel: cancelSubscription };
   }
 
-  readModel (options) {
+  async readModel (options) {
     if (!options) {
       throw new Error('Options are missing.');
     }
@@ -203,7 +203,7 @@ class Https extends EventEmitter {
     }
 
     const headers = {},
-          token = app.auth.getToken();
+          token = await app.auth.getToken();
 
     if (token) {
       headers.authorization = `Bearer ${token}`;
